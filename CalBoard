@@ -1,0 +1,412 @@
+package pro;
+
+import java.util.*;
+import java.util.Timer;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+import java.io.*;
+
+//bclock 모두 주석처리.
+//workspace 에 memo파일 만들어 놓기
+
+
+
+public class CalBoard extends JPanel implements ActionListener
+{
+   private GregorianCalendar cal,cal2;
+   private JComboBox monthChoice;   // 월 선택리스트
+   private JComboBox yearChoice;    // 년 선택리스트 
+   private JLabel yearS;
+   private JLabel monthS;
+   public int currentMonth;//현재월
+   public int currentYear;//현재연도
+   public int currentDay;//현재요일
+   public String today;
+   //private final String currentYearString;
+   //private final String currentDateString;//현재 날자.
+   private final Font helvB16 = new Font("고딕체", Font.PLAIN, 22);
+   private final int STyear = 2001;
+   private final int EDyear = 2020;
+   private String years[] = new String[20];
+   private final String months[] = {"1", "2", "3", "4","5", "6", "7", "8", "9","10", "11", "12"};
+   private final String days[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+   private final int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+   private final JPanel[][] dayO = new JPanel[6][7];
+   private final JLabel[][] monthButtons=new JLabel[6][7];
+   private final JPanel datep = new JPanel();
+
+   private JButton bmemo[][] = new JButton[6][7];
+   private JButton bclock[][] = new JButton[6][7];
+   private JTextArea ta[][] = new JTextArea[6][7];
+   ImageIcon memo = new ImageIcon("images/memo.gif");
+   ImageIcon clock = new ImageIcon("images/rclock.gif");
+   private ImageIcon wd = new ImageIcon("images/weekday.jpg");
+   JFrame jm = new JFrame();   // 메모 저장 팝업창
+   JButton input = new JButton();  // 메모창 입력버튼
+   JButton close = new JButton();  // 메모창 닫기 버튼
+   JTextArea jt = new JTextArea();  // 메모창 텍스트부분
+   JFrame jcm = new JFrame();      // 알람 저장 팝업창
+   JButton cinput = new JButton();  // 알람 입력버튼
+   JButton cclose = new JButton();  // 알람 닫기버튼
+   JTextField cjt = new JTextField();  // 알람 메모
+   JTextField thour = new JTextField();  // 시간필드
+   JTextField tmin = new JTextField();   // 분필드
+   private String temp="";         // 메모저장용 임시 파일명
+   private String temp2="";         // 메모저장용 임시 파일명
+   private String temp3="";         // 알람저장용 임시 파일명
+   Calendar gdate = Calendar.getInstance(); // 날짜 셋팅용 객체지정
+   Ttask tt = new Ttask();       // 알람 상황시 실행작업 객체
+   private String tempdate="";
+
+   
+   //   GUI 구성
+   public CalBoard() {
+      final JFrame f = new JFrame("스케줄러");
+      f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      f.pack();    
+      f.setSize(700,700);
+      f.setResizable(false);
+      f.setVisible(true);        
+
+//      현재 연도 가져오기
+      cal = new GregorianCalendar();
+      currentYear = cal.get(Calendar.YEAR);
+
+//      현재 달을 알아낸다.
+      currentMonth = cal.get(Calendar.MONTH);
+
+      final JPanel main = new JPanel();
+      main.setLayout(new BorderLayout());
+
+//      상단 바 구성 패널
+      final JPanel up = new JPanel();
+      up.setBackground(Color.white);
+      //up.setLayout(new GridLayout(1,4));
+
+//      연 선택 초이스
+       for (int k = STyear; k <= EDyear; k++) {
+               years[k - STyear] = Integer.toString(k);
+           }
+         yearChoice = new JComboBox(years);
+      
+      int sltYear = currentYear-2001;
+      yearChoice.setSelectedIndex(sltYear);
+      up.add(yearChoice).setSize(80,10);
+      yearChoice.addActionListener(this);
+
+// 연 라벨 입력
+      yearS = new JLabel("년");      
+      yearS.setFont(helvB16);
+      up.add(yearS);
+      
+
+//      월 선택 초이스
+      monthChoice = new JComboBox();
+      for(int i=0;i<12;i++){
+         monthChoice.addItem(months[i]);
+      }
+      monthChoice.setSelectedIndex(currentMonth);
+      up.add(monthChoice).setSize(80,10);
+      monthChoice.addActionListener(this); 
+      
+
+//      월 라벨 입력
+      monthS = new JLabel("월");
+      monthS.setFont(helvB16);
+      up.add(monthS);
+      main.add("North",up);
+      
+      
+
+//      하단 달력 만들기
+      JPanel down = new JPanel();
+      down.setLayout(new BorderLayout());
+        
+
+//      패널에 요일 식별자 삽입
+      JPanel dayP = new JPanel();
+      dayP.setLayout(new GridLayout(1,7));
+      dayP.setBackground(Color.white);
+      for(int i = 0;i<7;i++){
+         JLabel dayL = new JLabel(days[i],JLabel.CENTER);
+         dayL.setFont(helvB16);
+         if(i==0){
+            dayL.setForeground(Color.RED);
+         }
+         else if(i==6){
+            dayL.setForeground(Color.BLUE);
+         }
+         dayP.add(dayL);
+      }
+      down.add("North",dayP);
+      
+//      datep 패널에 빈라벨 부착하기. 나중에 달력이된다.
+      datep.setLayout(new GridLayout(6,7));
+      
+      //datep.
+      for(int i=0; i < 6; i++)
+         for(int j=0; j < 7; j++) {
+            monthButtons[i][j] = new JLabel("",JLabel.LEFT);
+            bmemo[i][j] = new JButton(memo);
+            bmemo[i][j].addActionListener(this);
+            //bclock[i][j] = new JButton(clock);
+            //bclock[i][j].addActionListener(this);
+            ta[i][j] = new JTextArea(3,10);
+            ta[i][j].setLineWrap(true);
+            ta[i][j].setEditable(false);
+            dayO[i][j] = new JPanel();
+            dayO[i][j].setLayout(null);
+            if ( j == 0 ) {
+               monthButtons[i][j].setForeground(Color.red);
+            }
+            if ( j == 6 ) {
+                monthButtons[i][j].setForeground(Color.blue);
+             }
+            /*else if(j%2!=0||j%2==0){
+               dayO[i][j].setBackground(Color.LIGHT_GRAY);
+            }
+            if(i%2==0 && j%2==0){
+               dayO[i][j].setBackground(Color.green);
+            }
+            else if(i%2==0){
+               dayO[i][j].setBackground(Color.pink);
+            }*/
+            
+            monthButtons[i][j].setFont(helvB16);
+            dayO[i][j].add(monthButtons[i][j]).setBounds(5, 5, 60, 20);
+            dayO[i][j].add(bmemo[i][j]).setBounds(70, 5, 20, 20);
+            //dayO[i][j].add(bclock[i][j]).setBounds(70, 5, 20, 20);
+            dayO[i][j].add(ta[i][j]).setBounds(0,25,100,80);
+            datep.add(dayO[i][j]);
+         } 
+      down.add("Center",datep);
+      main.add(down);
+      f.add(main);  //  Frame 에 주패널 삽입
+
+//      실제 날짜를 라벨로 붙이기
+      display_cal();
+   }
+     
+   public void Jmemo() {
+
+      jm = new JFrame("일일 상세 메모  "+currentYear+"년 "+(currentMonth+1)+"월 "+Integer.parseInt(today)+"일");
+      temp = "memo/"+Integer.toString(currentYear)+Integer.toString(currentMonth+1)+today+".txt";
+      jm.setLayout(new BorderLayout());
+      jm.setSize(500,400);
+      JPanel jcm = new JPanel();
+      jcm.setLayout(new BorderLayout());
+      JLabel dsc = new JLabel("메모내용을 입력하세요");
+      jt = new JTextArea();
+
+      jcm.add("North",dsc);
+      jcm.add("Center",jt);
+      JPanel bottom = new JPanel();
+      bottom.setSize(500,100);
+      input = new JButton("입력/수정");
+      close = new JButton("닫기");
+      input.addActionListener(this);
+      close.addActionListener(this);
+      bottom.add(input);
+      bottom.add(close);
+      jm.add("Center",jcm);
+      jm.add("South",bottom);
+      try{
+         FileReader fin = new FileReader(temp);
+         BufferedReader in = new BufferedReader(fin);
+         String ss="";
+         String line="";
+         while((line=in.readLine())!=null){    
+            ss += line;
+            ss += "\n";
+         }
+         fin.close();
+         jt.setText(ss);
+      }
+      catch (IOException ex)
+      {
+         ex.printStackTrace();    
+      }      
+      jm.setVisible(true);
+
+   }
+public void Jclock(){
+      
+      jcm = new JFrame("시간별 메모  "+currentYear+"년 "+(currentMonth+1)+"월 "+today+"일");
+      temp3 = "Alarm/"+Integer.toString(currentYear)+Integer.toString(currentMonth+1)+today;
+      tempdate = today;
+      jcm.setLayout(new BorderLayout());
+      jcm.setSize(500,150);
+      JPanel jctm = new JPanel();
+      jctm.setLayout(null);
+      jctm.setSize(500,150);
+      JLabel timelabel = new JLabel("시간설정(24시제) : ");
+      thour = new JTextField();
+      JLabel hlabel = new JLabel("시");
+      tmin = new JTextField();
+      JLabel mlabel = new JLabel("분");
+      JLabel memolabel = new JLabel("메              모 : ");
+      cjt = new JTextField();
+      jctm.add(timelabel).setBounds(10,0,200,30);
+      jctm.add(memolabel).setBounds(10,40,200,30);
+      jctm.add(cjt).setBounds(200,40,270,30);
+      jctm.add(thour).setBounds(200, 5, 20, 20);
+      jctm.add(hlabel).setBounds(220, 5, 20, 20);
+      jctm.add(tmin).setBounds(250, 5, 20, 20);
+      jctm.add(mlabel).setBounds(270, 5, 20, 20);
+      jcm.add("Center",jctm);
+      JPanel bottom = new JPanel();
+      bottom.setSize(500,100);
+      cinput = new JButton("입력/수정");
+      cclose = new JButton("닫기");
+      cinput.addActionListener(this);
+      cclose.addActionListener(this);
+      bottom.add(cinput);
+      bottom.add(cclose);
+      jcm.add("South",bottom);
+      jcm.setVisible(true);
+      
+   }
+   
+   public void display_cal(){
+
+      cal2 = new GregorianCalendar(currentYear, currentMonth, 1);
+      currentDay = cal2.get(Calendar.DAY_OF_WEEK);//현재 달의 첫째요일을 알아낸다.
+
+//      leap_Year check
+      final boolean leap_chk = cal2.isLeapYear(currentYear);    // 윤년계산
+
+      if (leap_chk) daysInMonth[1] = 29;
+      else daysInMonth[1] = 28;
+      
+      final int MaxDate=daysInMonth[currentMonth];//현재 달의 마지막 날짜를 알아낸다.
+      int date_Now=1;//현재 날짜를 나타낸다.
+      final boolean ok=true;//빈 라벨 개수 여부.
+
+
+      for(int i=0; i < 6; i++){
+         for(int j=0; j < 7; j++){
+            if(date_Now == 1 && j+1 < currentDay){//1일이 일요일이 아니라면 요일까지 빈버튼.
+               monthButtons[i][j].setText("");
+               bmemo[i][j].setVisible(false);
+               //bclock[i][j].setVisible(false);
+               ta[i][j].setVisible(false);
+               dayO[i][j].setVisible(false);
+            }else if(date_Now > MaxDate){//날짜가 마지막 날짜보다 커지면 
+               monthButtons[i][j].setText("");
+               bmemo[i][j].setVisible(false);
+               //bclock[i][j].setVisible(false);
+               ta[i][j].setVisible(false);
+               dayO[i][j].setVisible(false);
+            }
+            else {
+               today = ""+date_Now;
+               temp2 = "memo/"+Integer.toString(currentYear)+Integer.toString(currentMonth+1)+today+".txt";
+               monthButtons[i][j].setText(today);
+               bmemo[i][j].setVisible(true);
+               //bclock[i][j].setVisible(true);
+               ta[i][j].setText("");
+               ta[i][j].setVisible(true);
+               dayO[i][j].setVisible(true);
+               File f = new File(temp2);
+               if(f.exists()==true){       // 해당 메모 파일이 있으면 날짜에 간단히 출력
+                  try{
+                     FileReader fin = new FileReader(temp2);  // 파일 읽기
+                     BufferedReader in = new BufferedReader(fin);
+                     String ss="";
+                     String line="";
+                     while((line=in.readLine())!=null){    
+                        ss += line;
+                        ss += "\n";
+                     }
+                     fin.close();
+                     ta[i][j].setText(ss);
+                  }
+                  catch (IOException ex)
+                  {
+                     ex.printStackTrace();    
+                  }
+               }
+               date_Now++;   
+            }
+         }
+      }
+   }
+
+//   드롭다운 버튼(JComboBox)에서 월을 선택시 이벤트 처리
+   public void actionPerformed(final ActionEvent ae) {
+      final Object o=ae.getSource();
+      for(int i=0;i<6;i++){
+         for(int j=0;j<7;j++){
+            if(ae.getSource() == bmemo[i][j]){
+               today = monthButtons[i][j].getText();
+               Jmemo();
+            }
+           /* else if(ae.getSource() == bclock[i][j]){
+               today = monthButtons[i][j].getText();
+               Jclock();
+            }*/
+         }
+      }
+      if (o == monthChoice ) {
+
+         final int selectMonth=monthChoice.getSelectedIndex();// 선택한 월의 인텍스를 알아냄. 
+         monthChoice.setSelectedIndex(selectMonth);
+         cal.set(Calendar.MONTH, selectMonth);// 선택한 월을 현재 달로 설정
+         currentMonth=cal.get(Calendar.MONTH);
+      }
+      else if(o == yearChoice){
+         final int selectYear = yearChoice.getSelectedIndex();// 선택한 년의 인텍스를 알아냄.
+         final int pointYear = selectYear+2001;      
+         yearChoice.setSelectedIndex(selectYear);
+         cal.set(Calendar.YEAR, pointYear);// 선택한 월을 현재 달로 설정
+         currentYear=cal.get(Calendar.YEAR);
+      }
+      display_cal();
+      
+      if (ae.getSource() == input) {
+         try //입출력 관련 코드는 모두 try/catch 블록 안에
+         {
+            FileWriter writer = new FileWriter(temp);
+            writer.write(jt.getText());
+            writer.close();
+         }
+         catch (IOException ex)
+         {
+            ex.printStackTrace();    
+         }
+         jm.dispose();
+         display_cal();
+      }
+      else if (ae.getSource() == close) {
+         jm.dispose();
+      }
+      else if (ae.getSource() == cinput) {     
+         Timer timer = new Timer();        //  알람 설정부분 
+         temp3 +=thour.getText()+tmin.getText()+".txt";
+         try //입출력 관련 코드는 모두 try/catch 블록 안에  // 알람설정내용을 파일로 저장
+         {
+            FileWriter writer = new FileWriter(temp3);
+            writer.write(cjt.getText());
+            writer.close();
+         }
+         catch (IOException ex)
+         {
+            ex.printStackTrace();    
+         }
+         gdate.set(currentYear, currentMonth, Integer.parseInt(tempdate), Integer.parseInt(thour.getText()), Integer.parseInt(tmin.getText()),0);
+         tt.setst(temp3);     // 읽어올 파일명을 지정
+         timer.schedule(tt, gdate.getTime());   // 알람설정 끝
+         jcm.dispose();             
+      }
+      //Process, Cancel button
+      else if (ae.getSource() == cclose) {
+         jcm.dispose();
+      }
+   }
+
+   public static void main(String args[]){
+      new CalBoard();
+   }
+}
