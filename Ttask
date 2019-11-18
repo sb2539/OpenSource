@@ -1,0 +1,66 @@
+import java.io.*;
+import java.util.*;
+import javax.swing.*;
+import javax.sound.midi.*;
+
+public class Ttask extends TimerTask{
+   String str = new String();
+   MidiPlayer midiPlayer = new MidiPlayer(); 
+   public void setst(String aa){
+      str = aa;
+   }
+   public void run(){
+      midiPlayer.start();
+      String sss = new String();
+      try{
+         FileReader fin = new FileReader(str);
+         BufferedReader in = new BufferedReader(fin);
+         sss="";
+         String line="";
+         while((line=in.readLine())!=null){    
+            sss += line;
+            sss += "\n";
+         }
+         fin.close();
+      }
+      catch (IOException ex)
+      {
+         ex.printStackTrace();    
+      }
+      
+      JOptionPane.showMessageDialog(null, sss);
+   }
+}
+class MidiPlayer
+{
+   private Sequencer sequencer = null; //음악 파일이고
+
+   private Sequence sequence = null; //플레이어라고 생각하면 쉽다.
+
+   MidiPlayer() {
+      try {
+
+         //파일 객체로부터 시퀀스를 얻어 온다.
+
+         //아래 스트링과 같은 이름의 파일이 존재해야 한다.
+         sequence=MidiSystem.getSequence(new File("alarm.mid"));
+
+         sequencer=MidiSystem.getSequencer(); //기본 시퀀서를 얻어 온다.
+
+         sequencer.open(); // 시퀀서를 연다.
+         sequencer.setSequence(sequence); //시퀀서에 시퀀스를 설정한다.
+      } catch (Exception e) {
+         System.out.println(e);
+      }
+   }
+
+   void start() {
+      try {
+         sequencer.stop(); //이미 곡을 연주하고 있을 때 새로 듣기 위해 먼저 멈춘다.
+         sequencer.start(); //곡을 연주한다.
+      } catch (Exception e) {
+         System.out.println(e);
+      }
+   }
+}
+
