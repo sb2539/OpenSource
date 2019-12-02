@@ -7,6 +7,9 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import java.io.*;
+// mysql용 
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 //bclock 모두 주석처리.
 //workspace 에 memo파일 만들어 놓기
@@ -408,5 +411,28 @@ public void Jclock(){
 
    public static void main(String args[]){
       new CalBoard();
+      Connection con = null;
+      
+      String className = "org.gjt.mm.mysql.Driver";
+      String url = "jdbc:mysql://localhost:3306/shxdb?useSSL=false&useUnicode=true&characterEncoding=euckr";
+      String user = "root";
+      String passwd = "1234";
+      
+      try {
+          Class.forName(className);
+          con = DriverManager.getConnection(url, user, passwd);
+          System.out.println("Connect Success!");
+      } catch(Exception e) {
+          System.out.println("Connect Failed!");
+          e.printStackTrace();
+      } finally {
+              try {
+                  if(con != null && !con.isClosed()) {
+                      con.close();
+                  }
+              } catch(Exception e) {
+                  e.printStackTrace();
+              }
+      }
    }
 }
